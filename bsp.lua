@@ -5,6 +5,7 @@
 local FREE, WALL = 0, 1
 local random, floor = math.random, math.floor
 local pi, cos, sin, ln = math.pi, math.cos, math.sin, math.log
+
 local gauss = function()
 	local u, v = random(), 2*pi*random()
 	while u == 0 do 
@@ -26,19 +27,6 @@ local newGrid = function( w, h, c )
 	return grid
 end
 
-local function splitTreeUniform( x, y, w, h, maxl, l )
-	local l = l or 1
-	if w < 4 or h < 4 or l >= maxl then
-		return {x,y,w,h}
-	elseif random() < 0.5 then
-		local x_ = random( 2, w-1 )
-		return {splitTreeUniform( x, y, x_, h, maxl, l+1 ), splitTreeUniform( x+x_+1, y, w-x_-1, h, maxl, l+1 )}
-	else
-		local y_ = random( 2, h-1 )
-		return {splitTreeUniform( x, y, w, y_, maxl, l+1 ), splitTreeUniform( x, y+y_+1, w, h-y_-1, maxl, l+1 )}
-	end
-end
-
 local grandomInt = function( minx, maxx )
 	local x = gauss() * (1/6) + 0.5
 	if     x < 0 then x = 0
@@ -48,29 +36,10 @@ local grandomInt = function( minx, maxx )
 	return floor( minx + x * (maxx-minx) )
 end
 
-local function splitTreeGauss( x, y, w, h, maxl, l )
-	local l = l or 1
-	if w < 4 or h < 4 or l >= maxl then
-		return {x,y,w,h}
-	elseif random() < 0.5 then
-		local x_ = grandomInt( 2, w-1 )
-		return {splitTreeGauss( x, y, x_, h, maxl, l+1 ), splitTreeGauss( x+x_+1, y, w-x_-1, h, maxl, l+1 )}
-	else
-		local y_ = grandomInt( 2, h-1 )
-		return {splitTreeGauss( x, y, w, y_, maxl, l+1 ), splitTreeGauss( x, y+y_+1, w, h-y_-1, maxl, l+1 )}
-	end
-end
-
 local function splitTree( x, y, w, h, l, kwargs )
 	if w < 4 or h < 4 or l > (kwargs.maxl or 5) then
 		return {x,y,w,h}
 	else
-		local xsplit
-		if kwargs.splitMode == 'random' then xsplit = random() > 0.5 
-		elseif kwargs.splitMode == 'optimal' or kwargs.splitMode == nil then xsplit = w > h
-		else xsplit = kwargs.splitMode( x, y, w, h, l, args )
-		end
-		
 		local random
 		if kwargs.random == 'gauss' then
 			random = grandomInt
@@ -78,7 +47,7 @@ local function splitTree( x, y, w, h, l, kwargs )
 			random = kwargs.random or math.random
 		end
 		
-		if xsplit then
+		if w > h then
 			local x_ = random( 2, w-1 )
 			return {splitTree( x, y, x_, h, l+1, kwargs ), splitTree( x+x_+1, y, w-x_-1, h, l+1, kwargs )}
 		else
@@ -109,7 +78,7 @@ return function( kwargs )
 	
 	if not grid then
 		w, h = kwargs.w, kwargs.h
-		grid = newGrid( w, h, kwargs.mode == 'town' and FREE or WALL )
+		grid = newGrid( w, h, kwargs.invert and FREE or WALL )
 	else
 		w, h = #grid, #grid[1]
 	end
@@ -119,11 +88,7 @@ return function( kwargs )
 	
 	local tree = splitTree( 1, 1, maxx-minx+1, maxy-miny+1, 0, kwargs )
 	
-	if kwargs.mode == 'dungeon' or kwargs.mode == nil then
-		drawDungeon( tree, grid )
-	elseif kwargs.mode == 'town' then
-		drawTown( tree, grid )
-	end
+	drawDungeon( tree, grid )
 	
 	return grid
 end
