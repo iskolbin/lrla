@@ -36,14 +36,27 @@ local _heuristics = {
 	end
 }
 
-return function( grid, x0, y0, kwargs )
-	local kwargs = kwargs or {}
+local _topology = {
+	rect = {
+		{ 0,-1,-1, 0},
+		{-1, 0, 0,-1},
+		{ 0, 1,-1, 0},
+		{ 1, 0, 0,-1},
+		{ 0,-1, 1, 0},
+		{-1, 0, 0, 1},
+		{ 0, 1, 1, 0},
+		{ 1, 0, 0, 1},
+	}
+}
+
+return function( grid, x0, y0, kwargs_ )
+	local kwargs = kwargs_ or {}
 	local minx, miny = kwargs.minx or 1, kwargs.miny or 1
 	local maxx, maxy = kwargs.maxx or #grid, kwargs.maxy or #grid[1]
 	local radius = kwargs.power or 1
 	local decay = kwargs.decay or 1/radius
 	local light = {[x0] = {[y0] = radius}} -- light the starting cell
-	local distance
+	local distance, topology
 
 	if kwargs.distance then
 		if type( kwargs.distance ) == 'function' then
@@ -56,14 +69,26 @@ return function( grid, x0, y0, kwargs )
 	else
 		distance = _heuristics.euclidean
 	end
-	
-	local stack, n = {}, 0
-	
+
+	if kwargs.topology then
+		if type( kwargs.topology ) == 'table' then
+			topology = kwargs.topology
+		elseif _topology[kwargs.topology] then
+			topology = _topology[kwargs.topology]
+		else
+			error( 'Cannot set topology to ' .. tostring(kwargs.topology) .. '. It should be table or "rect"' )
+		end
+	else
+		topology = _topology['rect']
+	end
+
+	local stack = {}
+
 	for i = 1, #topology do
 		local xxyy = topology[i]
 		local xx, xy, yx, yy = xxyy[1], xxyy[2], xxyy[3], xxyy[4]
 		
-		n = 3
+		local n = 3
 		stack[1], stack[2], stack[3] = 1, 1, 0
 	
 		while n > 0 do
@@ -111,32 +136,32 @@ return function( grid, x0, y0, kwargs )
 						leftSlope  = leftSlope  + invdy05add
 						rightSlope = rightSlope + invdy05sub
 					
-						if ( not (x >= minx and y >= miny and x <= maxx and y <= maxy) or start < rightSlope ) then
-
-						elseif finish > leftSlope then
-							break
-						else
-						-- check if it's within the lightable area and light if needed
-							local radius_ = distance( dx, dy )
-							if radius_ <= radius then
-								local bright = 1.0 - decay * radius_
-								light[x] = light[x] or {}
-								light[x][y] = bright
-							end
-				 
-							if blocked then -- previous cell was a blocking one
-								if grid[x][y] >= 1 then -- hit a wall
-									newStart = rightSlope
-								else
-									blocked = false
-									start = newStart
+						if (x >= minx and y >= miny and x <= maxx and y <= maxy) and start >= rightSlope then
+							if finish > leftSlope then
+								break
+							else
+								-- check if it's within the lightable area and light if needed
+								local radius_ = distance( dx, dy )
+								if radius_ <= radius then
+									local bright = 1.0 - decay * radius_
+									light[x] = light[x] or {}
+									light[x][y] = bright
 								end
+				 
+								if blocked then -- previous cell was a blocking one
+									if grid[x][y] >= 1 then -- hit a wall
+										newStart = rightSlope
+									else
+										blocked = false
+										start = newStart
+									end
 							
-							elseif grid[x][y] >= 1 and -dy < radius then -- hit a wall within sight line
-								blocked = true
-								n = n + 3
-								stack[n-2], stack[n-1], stack[n] = -dy + 1, start, leftSlope
-								newStart = rightSlope
+								elseif grid[x][y] >= 1 and -dy < radius then -- hit a wall within sight line
+									blocked = true
+									n = n + 3
+									stack[n-2], stack[n-1], stack[n] = -dy + 1, start, leftSlope
+									newStart = rightSlope
+								end
 							end
 						end
 					end
