@@ -14,7 +14,7 @@
 --			'manhattan', 
 --			'euclidean'
 --			'chebyshev'
---		.neighbors(recthdp) -- generating neighbors for current node, predefined functions are
+--		.topology(recthdp) -- generating neighbors for current node, predefined functions are
 --			'tex'(triangular), 
 --			'orth'(rectangular, 4 neighbors), 
 --			'hex'(hexagonal), 
@@ -52,7 +52,7 @@ local _heuristics = {
 	end
 }
 
-local _neighbors = {
+local _topology = {
 	tex = function( acc, x, y, _, minx, miny, maxx, maxy )
 		local i = 1
 		if y > miny and ((x+y)%2 == 0) then i, acc[i], acc[i+1] = i+2, x, y-1 end
@@ -127,7 +127,7 @@ return function( grid, x0, y0, x1, y1, kwargs_ )
 	local weight = kwargs.weight or 1
 	local minx, miny, maxx, maxy = kwargs.minx or 1, kwargs.miny or 1, kwargs.maxx or #grid, kwargs.maxy or #grid[1]
 	local heuristics
-	local neighbors	
+	local topology	
 	
 	if kwargs.heuristics then
 		if type( kwargs.heuristics ) == 'function' then
@@ -141,16 +141,16 @@ return function( grid, x0, y0, x1, y1, kwargs_ )
 		heuristics = _heuristics.euclidean
 	end
 
-	if kwargs.neighbors then
-		if type( kwargs.neighbors ) == 'function' then
-			neighbors = kwargs.neighbors
-		elseif _neighbors[kwargs.neighbors] then
-			neighbors = _neighbors[kwargs.neighbors]
+	if kwargs.topology then
+		if type( kwargs.topology ) == 'function' then
+			topology = kwargs.topology
+		elseif _topology[kwargs.topology] then
+			topology = _topology[kwargs.topology]
 		else
-			error( 'Cannot set neighbors to ' .. tostring(kwargs.neighbors) .. '. It should be function(acc, x, y, grid, minx, miny, maxx, maxy)->acc,n or one of "tex", "hex", "rect", "rectndp", "recthdp"' )
+			error( 'Cannot set topology to ' .. tostring(kwargs.topology) .. '. It should be function(acc, x, y, grid, minx, miny, maxx, maxy)->acc,n or one of "tex", "hex", "rect", "rectndp", "recthdp"' )
 		end
 	else
-		neighbors = _neighbors.recthdp
+		topology = _topology.recthdp
 	end
 	
 	local close = {}
@@ -202,7 +202,7 @@ return function( grid, x0, y0, x1, y1, kwargs_ )
 		local g = current[1]
 			
 		local count = 0
-		local nacc, n = neighbors( neighborsacc, x, y, grid, minx, miny, maxx, maxy )
+		local nacc, n = topology( neighborsacc, x, y, grid, minx, miny, maxx, maxy )
 		for i = 1, n, 2 do
 			local x_, y_ = nacc[i], nacc[i+1]
 			local g_ = g + grid[x_][y_]
