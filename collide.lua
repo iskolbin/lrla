@@ -33,9 +33,9 @@ local function ccwPoints( x1, y1, x2, y2, x3, y3 )
 	return (y3 - y1) * (x2 - x1) > (y2 - y1) * (x3 - x1)
 end
 
-local function intersectLineLine( x11, y11, y11, y12, x21, y21, x22, y22 )
+local function intersectLineLine( x11, y11, x12, y12, x21, y21, x22, y22 )
 	return ccwPoints(x11,y11,x21,y21,x22,y22) ~= ccwPoints(x12,y12,x21,y21,x22,y22) and 
-		ccwPoints(x11,y11,x12,y12,x21,y21) ~= ccw(x11,y11,x12,y12,x22,y22)
+		ccwPoints(x11,y11,x12,y12,x21,y21) ~= ccwPoints(x11,y11,x12,y12,x22,y22)
 end
 
 return {
