@@ -21,8 +21,8 @@ local function collect()
 	end
 end
 
-return function( x1, y1, x2, y2, f )
-	local k, f = 0, f or collect()
+return function( x1, y1, x2, y2, f_ )
+	local k, f = 0, f_ or collect()
 	local ok, result
 
 	if x1 == x2 then
