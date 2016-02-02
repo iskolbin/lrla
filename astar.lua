@@ -16,7 +16,7 @@
 --			'chebyshev'
 --		.neighbors(recthdp) -- generating neighbors for current node, predefined functions are
 --			'tex'(triangular), 
---			'orto'(rectangular, 4 neighbors), 
+--			'orth'(rectangular, 4 neighbors), 
 --			'hex'(hexagonal), 
 --			'rect'(rectangular, 8 neighbors), 
 --			'rectndp'(rectangular, 8 neighbors, both orthogonal neighbors must be noninfinite),
@@ -33,7 +33,7 @@
 --		generator returning pair of coordinates 	
 
 local _heuristics = {
-	dijkstra = function( dx, dy )
+	dijkstra = function( _, _ )
 		return 0
 	end,
 	
@@ -53,7 +53,7 @@ local _heuristics = {
 }
 
 local _neighbors = {
-	tex = function( acc, x, y, grid, minx, miny, maxx, maxy )
+	tex = function( acc, x, y, _, minx, miny, maxx, maxy )
 		local i = 1
 		if y > miny and ((x+y)%2 == 0) then i, acc[i], acc[i+1] = i+2, x, y-1 end
 		if y < maxy and ((x+y)%2 == 1) then i, acc[i], acc[i+1] = i+2, x, y+1 end
@@ -62,7 +62,7 @@ local _neighbors = {
 		return acc, i-1
 	end,
 
-	orto = function( acc, x, y, grid, minx, miny, maxx, maxy )
+	orth = function( acc, x, y, _, minx, miny, maxx, maxy )
 		local i = 1
 		if y > miny then i, acc[i], acc[i+1] = i+2, x, y-1 end
 		if y < maxy then i, acc[i], acc[i+1] = i+2, x, y+1 end
@@ -71,7 +71,7 @@ local _neighbors = {
 		return acc, i-1
 	end,
 
-	hex = function( acc, x, y, grid, minx, miny, maxx, maxy )
+	hex = function( acc, x, y, _, minx, miny, maxx, maxy )
 		local i = 1
 		if y > miny then i, acc[i], acc[i+1] = i+2, x, y-1 end
 		if y < maxy then i, acc[i], acc[i+1] = i+2, x, y+1 end
@@ -82,7 +82,7 @@ local _neighbors = {
 		return acc, i - 1
 	end,
 		
-	rect = function( acc, x, y, grid, minx, miny, maxx, maxy )
+	rect = function( acc, x, y, _, minx, miny, maxx, maxy )
 		local i = 1
 		if y > miny then i, acc[i], acc[i+1] = i+2, x, y-1 end
 		if y < maxy then i, acc[i], acc[i+1] = i+2, x, y+1 end
@@ -122,8 +122,8 @@ local _neighbors = {
 	end,
 }
 
-return function( grid, x0, y0, x1, y1, kwargs )
-	local kwargs = kwargs or {}
+return function( grid, x0, y0, x1, y1, kwargs_ )
+	local kwargs = kwargs_ or {}
 	local weight = kwargs.weight or 1
 	local minx, miny, maxx, maxy = kwargs.minx or 1, kwargs.miny or 1, kwargs.maxx or #grid, kwargs.maxy or #grid[1]
 	local heuristics
@@ -209,7 +209,7 @@ return function( grid, x0, y0, x1, y1, kwargs )
 				
 			if g_ ~= math.huge then
 				local next_ = close[x_] and close[x_][y_]
-				local dx, dy = x0 - x_, y0 - y_
+				dx, dy = x0 - x_, y0 - y_
 				if not next_ then
 					count = count + 1; topush[count] = { g_, g_ + weight * heuristics( dx, dy ), current, x_, y_, }
 				elseif g_ < next_[1] then
@@ -226,9 +226,9 @@ return function( grid, x0, y0, x1, y1, kwargs )
 		size = size + count
 
 		for index_ = math.floor( 0.5 * size ), 1, -1 do
-			local index = index_
-			local leftIndex = index + index
-			local rightIndex = leftIndex + 1
+			index = index_
+			leftIndex = index + index
+			rightIndex = leftIndex + 1
 			while leftIndex <= size do
 				local smallerChild = leftIndex
 				if rightIndex <= size and open[leftIndex][2] > open[rightIndex][2] then
